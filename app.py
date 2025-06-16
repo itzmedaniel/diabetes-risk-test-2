@@ -11,7 +11,7 @@ st.set_page_config(page_title="Diabetes Prediction", page_icon="🩺", layout="c
 st.title("🩺 Diabetes Risk Prediction")
 
 st.markdown("""
-Welcome to the **Diabetes Risk Predictor**! 🧠🩺 
+Welcome to the **Diabetes Risk Predictor**! 🧠🩺  
 Enter your health details to estimate your risk of diabetes.
 """)
 
@@ -87,15 +87,56 @@ with tab3:
 
 with tab4:
     st.subheader("4. General & Mental Health")
+
     genhlth = st.slider("General health (1=Excellent, 5=Poor)", 1, 5, 3)
-    menthlth = st.slider("Days mental health not good", 0, 30, 0)
-    physhlth = st.slider("Days physical health not good", 0, 30, 0)
+
+    mental_illness = st.radio("Are you suffering from any mental illness?", ["No", "Yes"])
+    menthlth = 5 if mental_illness == "Yes" else 0
+    if mental_illness == "Yes":
+        st.text_input("Optional: Name or type of mental illness")
+
+    physical_disability = st.radio("Do you have any physical disability?", ["No", "Yes"])
+    physhlth = 5 if physical_disability == "Yes" else 0
+    if physical_disability == "Yes":
+        st.text_input("Optional: Name or type of physical disability")
+
     diffwalk = st.radio("Difficulty walking?", ["No", "Yes"])
 
 with tab5:
     st.subheader("5. Demographics")
     sex = st.radio("Biological Sex", ["Female", "Male"])
-    age = st.slider("Age group (1=18-24, 13=80+)", 1, 13, 6)
+    age_real = st.slider("Your age", 13, 100, 30)
+
+    # Convert to BRFSS age group (1 = 18–24, ..., 13 = 80+)
+    if age_real < 18:
+        age = 1
+    elif age_real < 25:
+        age = 1
+    elif age_real < 30:
+        age = 2
+    elif age_real < 35:
+        age = 3
+    elif age_real < 40:
+        age = 4
+    elif age_real < 45:
+        age = 5
+    elif age_real < 50:
+        age = 6
+    elif age_real < 55:
+        age = 7
+    elif age_real < 60:
+        age = 8
+    elif age_real < 65:
+        age = 9
+    elif age_real < 70:
+        age = 10
+    elif age_real < 75:
+        age = 11
+    elif age_real < 80:
+        age = 12
+    else:
+        age = 13
+
     education = st.slider("Education level (1=None, 6=College)", 1, 6, 4)
     income = st.slider("Income level (1=<10k, 8=>75k)", 1, 8, 5)
 
