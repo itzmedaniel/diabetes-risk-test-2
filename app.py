@@ -80,10 +80,20 @@ diffwalk = st.radio("Serious difficulty walking/climbing stairs?", ["No", "Yes"]
 st.subheader("5. Demographics")
 
 sex = st.radio("Biological Sex", ["Female", "Male"])
-age = st.slider("Age category (1=18-24, ..., 13=80+)", 1, 13, 6)
+age = st.slider("Age", min_value=13, max_value=100, value=25, help="Select your current age (13–100 years old)")
 education = st.slider("Education level (1=No school, 6=College grad)", 1, 6, 4)
-income = st.slider("Income level (1= <10k, 8= >75k)", 1, 8, 5)
-
+income = st.selectbox(
+    "Monthly Income (in RM)", 
+    [
+        "Less than RM1,000",
+        "RM1,000 - RM1,999",
+        "RM2,000 - RM2,999",
+        "RM3,000 - RM3,999",
+        "RM4,000 - RM4,999",
+        "RM5,000 and above"
+    ],
+    help="Please estimate your gross monthly income in Malaysian Ringgit"
+)
 # --- Encoding
 
 def yn(val): return 1 if val == "Yes" else 0
