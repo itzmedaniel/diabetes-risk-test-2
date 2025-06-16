@@ -19,9 +19,12 @@ with st.sidebar:
     st.header("⚙️ Doctor Panel")
     show_info = st.checkbox("Show medical guidance", value=True)
 
-# --- Section Tabs ---
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["🩸 Vitals", "🏃 Lifestyle", "🏥 Access", "🧠 Mental Health", "🧬 Demographics"])
+# --- Tabs ---
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🩸 Vitals", "🏃 Lifestyle", "🏥 Access", "🧠 Mental Health", "🧬 Demographics"
+])
 
+# --- Tab 1: Vitals ---
 with tab1:
     st.subheader("1. Blood Pressure & Cholesterol")
 
@@ -70,6 +73,7 @@ with tab1:
         bmi_status = "Obese"
         st.error("🛑 Obese")
 
+# --- Tab 2: Lifestyle ---
 with tab2:
     st.subheader("2. Lifestyle")
     smoker = st.radio("Do you smoke?", ["No", "Yes"])
@@ -80,69 +84,46 @@ with tab2:
     veggies = st.radio("Eat vegetables daily?", ["No", "Yes"])
     alcohol = st.radio("Heavy alcohol consumption?", ["No", "Yes"])
 
+# --- Tab 3: Healthcare Access ---
 with tab3:
     st.subheader("3. Healthcare Access")
     any_healthcare = st.radio("Healthcare coverage?", ["No", "Yes"])
     no_doc_cost = st.radio("Couldn't see doctor due to cost?", ["No", "Yes"])
 
+# --- Tab 4: Mental & Physical Health ---
 with tab4:
     st.subheader("4. General & Mental Health")
 
     genhlth = st.slider("General health (1=Excellent, 5=Poor)", 1, 5, 3)
 
-    mental_illness = st.radio("Are you suffering from any mental illness?", ["No", "Yes"])
-    menthlth = 5 if mental_illness == "Yes" else 0
-    if mental_illness == "Yes":
-        st.text_input("Optional: Name or type of mental illness")
+    menthlth_flag = 1 if st.radio("Do you suffer from any mental illness?", ["No", "Yes"]) == "Yes" else 0
+    mental_condition = ""
+    if menthlth_flag == 1:
+        mental_condition = st.text_input("Specify your mental illness (optional)", "")
 
-    physical_disability = st.radio("Do you have any physical disability?", ["No", "Yes"])
-    physhlth = 5 if physical_disability == "Yes" else 0
-    if physical_disability == "Yes":
-        st.text_input("Optional: Name or type of physical disability")
+    physhlth_flag = 1 if st.radio("Any physical disability?", ["No", "Yes"]) == "Yes" else 0
+    physical_condition = ""
+    if physhlth_flag == 1:
+        physical_condition = st.text_input("Specify your physical disability (optional)", "")
 
+    menthlth = 5 if menthlth_flag == 1 else 0
+    physhlth = 5 if physhlth_flag == 1 else 0
     diffwalk = st.radio("Difficulty walking?", ["No", "Yes"])
 
+# --- Tab 5: Demographics ---
 with tab5:
     st.subheader("5. Demographics")
     sex = st.radio("Biological Sex", ["Female", "Male"])
-    age_real = st.slider("Your age", 13, 100, 30)
-
-    # Convert to BRFSS age group (1 = 18–24, ..., 13 = 80+)
-    if age_real < 18:
-        age = 1
-    elif age_real < 25:
-        age = 1
-    elif age_real < 30:
-        age = 2
-    elif age_real < 35:
-        age = 3
-    elif age_real < 40:
-        age = 4
-    elif age_real < 45:
-        age = 5
-    elif age_real < 50:
-        age = 6
-    elif age_real < 55:
-        age = 7
-    elif age_real < 60:
-        age = 8
-    elif age_real < 65:
-        age = 9
-    elif age_real < 70:
-        age = 10
-    elif age_real < 75:
-        age = 11
-    elif age_real < 80:
-        age = 12
-    else:
-        age = 13
-
+    age = st.slider("Age", 13, 100, 35)
     education = st.slider("Education level (1=None, 6=College)", 1, 6, 4)
     income = st.slider("Income level (1=<10k, 8=>75k)", 1, 8, 5)
 
 # --- Encoding ---
 def yn(val): return 1 if val == "Yes" else 0
 def sex_val(val): return 1 if val == "Male" else 0
+
+# Age group mapping (like original 1-13 scale)
+age_group = min(13, max(1, int((age - 18) / 5) + 1))  # approximates 18–24 = 1, ..., 80+ = 13
 
 features = np.array([[
     high_bp,
@@ -163,7 +144,7 @@ features = np.array([[
     physhlth,
     yn(diffwalk),
     sex_val(sex),
-    age,
+    age_group,
     education,
     income
 ]])
@@ -181,16 +162,23 @@ if st.button("Predict Diabetes Risk"):
 
     st.markdown(f"**Confidence:** `{prob[prediction]*100:.2f}%`")
 
-    # Visualization
+    # --- Pie chart
     st.markdown("### 🧠 Risk Breakdown")
     fig, ax = plt.subplots()
     ax.pie([prob[1], prob[0]], labels=["Diabetes Risk", "Low Risk"], autopct="%.1f%%", colors=["#FF4B4B", "#4CAF50"])
     st.pyplot(fig)
 
+    # --- Summary
+    st.markdown("### 📝 Summary")
     st.markdown(f"""
-    #### 📝 Summary
     - **Risk**: {'🛑 High' if prediction == 1 else '✅ Low'}
     - **BMI**: `{bmi}` ({bmi_status})
-    - **BP**: {'High' if high_bp else 'Normal'}
+    - **Blood Pressure**: {'High' if high_bp else 'Normal'}
     - **Cholesterol**: {'High' if high_chol else 'Normal'}
     """)
+
+    if menthlth_flag:
+        st.warning(f"🧠 **Mental Illness Declared:** {mental_condition if mental_condition else 'Not specified'}")
+
+    if physhlth_flag:
+        st.warning(f"♿ **Physical Disability Declared:** {physical_condition if physical_condition else 'Not specified'}")
