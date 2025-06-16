@@ -1,110 +1,155 @@
 import streamlit as st
 import numpy as np
 import joblib
+import matplotlib.pyplot as plt
 
-# Load model
+# Load the trained model
 model = joblib.load("diabetes_model_rf.pkl")
 
-st.set_page_config(page_title="Diabetes Risk Prediction", page_icon="🩺", layout="centered")
+# --- Page config ---
+st.set_page_config(page_title="Diabetes Prediction", page_icon="🩺", layout="centered")
 st.title("🩺 Diabetes Risk Prediction")
 
 st.markdown("""
-This tool estimates your risk of diabetes based on your health data.
-Please enter your information below.
+Welcome to the **Diabetes Risk Predictor**! 🧠🩺 
+Enter your health details to estimate your risk of diabetes.
 """)
 
-# Systolic/Diastolic Blood Pressure Input
-st.subheader("🩺 Blood Pressure")
-systolic = st.slider("Systolic (SYS) mmHg", 80, 200, 120)
-diastolic = st.slider("Diastolic (DIA) mmHg", 40, 130, 80)
-pulse = st.slider("Pulse (bpm)", 40, 160, 70)
-st.markdown("Normal SYS: 90–120, DIA: 60–80, Pulse: 60–100")
+with st.sidebar:
+    st.header("⚙️ Doctor Panel")
+    show_info = st.checkbox("Show medical guidance", value=True)
 
-# Cholesterol Input
-st.subheader("🧪 Cholesterol")
-cholesterol = st.slider("Total Cholesterol (mg/dL)", 100, 400, 180)
-st.markdown("Desirable: <200 mg/dL | Borderline high: 200–239 | High: ≥240")
+# --- Section Tabs ---
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["🩸 Vitals", "🏃 Lifestyle", "🏥 Access", "🧠 Mental Health", "🧬 Demographics"])
 
-# Heart Disease
-st.subheader("❤️ Heart Disease")
-heart_disease = st.radio("Do you have heart disease?", ["Yes", "No"])
-heart_disease_type = ""
-if heart_disease == "Yes":
-    heart_disease_type = st.text_input("If known, specify the type (optional):")
+with tab1:
+    st.subheader("1. Blood Pressure & Cholesterol")
 
-# General Inputs
-st.subheader("👤 Personal & Lifestyle")
+    systolic = st.number_input("Systolic BP (mmHg)", 70, 250, 120)
+    diastolic = st.number_input("Diastolic BP (mmHg)", 40, 140, 80)
+    pulse = st.number_input("Resting Pulse (bpm)", 40, 180, 75)
 
-age = st.slider("Age (years)", 13, 100, 30)
-sex = st.selectbox("Sex", ["Male", "Female"])
-bmi = st.slider("Body Mass Index (BMI)", 10.0, 60.0, 22.0)
-physical_activity = st.selectbox("How often do you exercise?", ["None", "Rarely", "Sometimes", "Often", "Everyday"])
-smoking = st.radio("Do you smoke?", ["Yes", "No"])
-alcohol = st.radio("Do you drink alcohol?", ["Yes", "No"])
-fruit_veg = st.selectbox("Do you eat fruits/vegetables daily?", ["No", "Sometimes", "Yes"])
-mental_health = st.slider("Poor mental health days (past 30 days)", 0, 30, 0)
-physical_health = st.slider("Poor physical health days (past 30 days)", 0, 30, 0)
-sleep = st.slider("Average sleep per night (hours)", 0.0, 24.0, 7.0)
+    if show_info:
+        st.markdown("""
+        - **Normal BP**: < 120/80 mmHg  
+        - **Elevated**: 120–129/<80  
+        - **High**: ≥130 or ≥80
+        """)
 
-# Healthcare Access
-healthcare = st.radio("Do you have access to healthcare?", ["Yes", "No"])
+    high_bp = 1 if systolic >= 130 or diastolic >= 80 else 0
 
-# Income
-income = st.selectbox("Monthly Income", ["< RM1,000", "RM1,000–RM3,000", "RM3,001–RM5,000", "RM5,001–RM10,000", "> RM10,000"])
+    cholesterol = st.number_input("Total Cholesterol (mg/dL)", 100, 400, 180)
 
-# Mapping user input into model features
-def prepare_features():
-    # Map lifestyle responses to scale
-    activity_map = {"None": 0, "Rarely": 2.5, "Sometimes": 5, "Often": 7.5, "Everyday": 10}
-    yesno_map = {"Yes": 1, "No": 0}
-    fruitveg_map = {"No": 0, "Sometimes": 0.5, "Yes": 1}
-    sex_map = {"Male": 1, "Female": 0}
-    income_map = {
-        "< RM1,000": 1,
-        "RM1,000–RM3,000": 2,
-        "RM3,001–RM5,000": 3,
-        "RM5,001–RM10,000": 4,
-        "> RM10,000": 5
-    }
+    if show_info:
+        st.markdown("""
+        - **Normal**: < 200  
+        - **Borderline**: 200–239  
+        - **High**: ≥ 240
+        """)
 
-    features = [
-        1 if systolic >= 130 or diastolic >= 80 else 0,  # HighBP
-        1 if cholesterol >= 240 else 0,                  # HighChol
-        yesno_map.get(smoking),                          # Smoker
-        yesno_map.get(alcohol),                          # HvyAlcoholConsump
-        fruitveg_map.get(fruit_veg),                     # FruitsVeggies
-        bmi,                                             # BMI
-        activity_map.get(physical_activity),             # PhysActivity
-        yesno_map.get(heart_disease),                    # HeartDiseaseorAttack
-        mental_health,                                   # MentHlth
-        physical_health,                                 # PhysHlth
-        sleep,                                           # AvgDailySleep
-        yesno_map.get(healthcare),                       # DiffWalk (using as a proxy)
-        income_map.get(income),                          # Income
-        age,                                             # Age
-        sex_map.get(sex),                                # Sex
-        systolic,                                        # Custom: Systolic
-        diastolic,                                       # Custom: Diastolic
-        pulse,                                           # Custom: Pulse
-        cholesterol,                                     # Custom: Cholesterol
-    ]
+    high_chol = 1 if cholesterol >= 200 else 0
+    chol_check = st.radio("Had cholesterol checked in past 5 years?", ["No", "Yes"])
 
-    # Fill to 21 features if needed
-    while len(features) < 21:
-        features.append(0)
+    st.markdown("### ⚖️ Calculate Your BMI")
+    height_cm = st.number_input("Height (cm)", 100, 250, 170)
+    weight_kg = st.number_input("Weight (kg)", 30, 200, 65)
+    bmi = round(weight_kg / ((height_cm / 100) ** 2), 1)
+    st.markdown(f"**Calculated BMI:** `{bmi}`")
 
-    return np.array(features).reshape(1, -1)
+    bmi_status = ""
+    if bmi < 18.5:
+        bmi_status = "Underweight"
+        st.warning("⚠️ Underweight")
+    elif 18.5 <= bmi < 25:
+        bmi_status = "Normal weight"
+        st.success("✅ Normal weight")
+    elif 25 <= bmi < 30:
+        bmi_status = "Overweight"
+        st.info("ℹ️ Overweight")
+    else:
+        bmi_status = "Obese"
+        st.error("🛑 Obese")
 
-# Predict button
-if st.button("🔍 Predict Diabetes Risk"):
-    features = prepare_features()
+with tab2:
+    st.subheader("2. Lifestyle")
+    smoker = st.radio("Do you smoke?", ["No", "Yes"])
+    stroke = st.radio("History of stroke?", ["No", "Yes"])
+    heart_disease = st.radio("Heart disease history?", ["No", "Yes"])
+    phys_activity = st.radio("Physical activity?", ["No", "Yes"])
+    fruits = st.radio("Eat fruits daily?", ["No", "Yes"])
+    veggies = st.radio("Eat vegetables daily?", ["No", "Yes"])
+    alcohol = st.radio("Heavy alcohol consumption?", ["No", "Yes"])
+
+with tab3:
+    st.subheader("3. Healthcare Access")
+    any_healthcare = st.radio("Healthcare coverage?", ["No", "Yes"])
+    no_doc_cost = st.radio("Couldn't see doctor due to cost?", ["No", "Yes"])
+
+with tab4:
+    st.subheader("4. General & Mental Health")
+    genhlth = st.slider("General health (1=Excellent, 5=Poor)", 1, 5, 3)
+    menthlth = st.slider("Days mental health not good", 0, 30, 0)
+    physhlth = st.slider("Days physical health not good", 0, 30, 0)
+    diffwalk = st.radio("Difficulty walking?", ["No", "Yes"])
+
+with tab5:
+    st.subheader("5. Demographics")
+    sex = st.radio("Biological Sex", ["Female", "Male"])
+    age = st.slider("Age group (1=18-24, 13=80+)", 1, 13, 6)
+    education = st.slider("Education level (1=None, 6=College)", 1, 6, 4)
+    income = st.slider("Income level (1=<10k, 8=>75k)", 1, 8, 5)
+
+# --- Encoding ---
+def yn(val): return 1 if val == "Yes" else 0
+def sex_val(val): return 1 if val == "Male" else 0
+
+features = np.array([[
+    high_bp,
+    high_chol,
+    yn(chol_check),
+    bmi,
+    yn(smoker),
+    yn(stroke),
+    yn(heart_disease),
+    yn(phys_activity),
+    yn(fruits),
+    yn(veggies),
+    yn(alcohol),
+    yn(any_healthcare),
+    yn(no_doc_cost),
+    genhlth,
+    menthlth,
+    physhlth,
+    yn(diffwalk),
+    sex_val(sex),
+    age,
+    education,
+    income
+]])
+
+# --- Prediction ---
+st.subheader("📊 Prediction")
+if st.button("Predict Diabetes Risk"):
     prediction = int(model.predict(features)[0])
     prob = model.predict_proba(features)[0]
 
     if prediction == 1:
-        st.error("⚠️ High risk of diabetes.")
+        st.error("🛑 High risk of diabetes.")
     else:
         st.success("✅ Low risk of diabetes.")
-    
-    st.markdown(f"**Confidence:** {prob[prediction]*100:.2f}%")
 
+    st.markdown(f"**Confidence:** `{prob[prediction]*100:.2f}%`")
+
+    # Visualization
+    st.markdown("### 🧠 Risk Breakdown")
+    fig, ax = plt.subplots()
+    ax.pie([prob[1], prob[0]], labels=["Diabetes Risk", "Low Risk"], autopct="%.1f%%", colors=["#FF4B4B", "#4CAF50"])
+    st.pyplot(fig)
+
+    st.markdown(f"""
+    #### 📝 Summary
+    - **Risk**: {'🛑 High' if prediction == 1 else '✅ Low'}
+    - **BMI**: `{bmi}` ({bmi_status})
+    - **BP**: {'High' if high_bp else 'Normal'}
+    - **Cholesterol**: {'High' if high_chol else 'Normal'}
+    """)
